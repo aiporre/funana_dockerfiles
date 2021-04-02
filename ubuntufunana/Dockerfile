@@ -7,7 +7,7 @@ ARG ROOT_CONTAINER=ubuntu:18.04
 ARG BASE_CONTAINER=$ROOT_CONTAINER
 FROM ubunturdp
 
-SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+SHELL ["/bin/bash", "--login", "-o", "pipefail", "-c"]
 
 # --- User params
 
@@ -63,6 +63,7 @@ RUN apt-get -q update \
     locales \
     fonts-liberation \
     run-one \
+    git \
  && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 RUN echo "en_US.UTF-8 UTF-8" > /etc/locale.gen && \
@@ -175,9 +176,32 @@ RUN sudo chmod 666 fiji-linux64.tar.gz && mkdir /opt/fiji && \
     sudo rm fiji-linux64.tar.gz && \
     fix-permissions /opt/fiji
 
+# Noise2Void installation
+ENV N2V_PATH=/opt/quick-n2v
+ADD https://github.com/aiporre/quick-n2v/archive/refs/tags/v0.2.tar.gz /tmp/quickn2v.tar.gz
+
+RUN sudo chmod 666 quickn2v.tar.gz && mkdir $N2V_PATH && \
+    tar zxvf quickn2v.tar.gz --directory $N2V_PATH  --strip 1 && \
+    sudo rm quickn2v.tar.gz && \
+    conda create -n n2v pip python==3.7
+RUN echo "-----------------" && ls $N2V_PATH
+SHELL ["conda", "run", "--no-capture-output", "-n", "n2v", "/bin/bash", "-o", "pipefail", "-c"]
+
+RUN conda install -y -c conda-forge tensorflow=1.14 && \ 
+    pip install -r $N2V_PATH/requirements.txt && \
+    fix-permissions /opt/quick-n2v && \
+    echo "# Noise2void alliases " >> /etc/skel/.bashrc && \
+    echo "export N2V_PATH=\"$N2V_PATH\"" >> /etc/skel/.bashrc && \
+    echo "alias n2vimages=\"python \$N2V_PATH/onimages.py\"" >> /etc/skel/.bashrc && \  
+    echo "alias n2vvideo=\"python \$N2V_PATH/onvideo.py\"" >> /etc/skel/.bashrc && \  
+    echo "alias n2vrun=\"python \$N2V_PATH/onimagestunning.py\"" >> /etc/skel/.bashrc
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+
 # Setting .bashrc for all users
 
-RUN echo "Default configurations funana user" >> /etc/skel/.bashrc && \
+RUN echo "# Default configurations funana user" >> /etc/skel/.bashrc && \
     echo "export LD_LIBRARY_PATH=\"$LD_LIBRARY_PATH:\$LD_LIBRARY_PATH\"" >> /etc/skel/.bashrc && \
     echo "export NVIDIA_VISIBLE_DEVICES=\"$NVIDIA_VISIBLE_DEVICES" >> /etc/skel/.bashrc  && \
     echo "export NCCL_VERSION=\"$NCCL_VERSION" >> /etc/skel/.bashrc && \
