@@ -19,6 +19,21 @@ ARG NB_GID="100"
 
 USER root
 
+# 0. java
+RUN apt-get update && \
+    apt-get install -y openjdk-8-jdk && \
+    apt-get install -y ant && \
+    apt-get clean;
+# Fix certificate issues
+RUN apt-get update && \
+    apt-get install ca-certificates-java && \
+    apt-get clean && \
+    update-ca-certificates -f;
+
+# Setup JAVA_HOME -- useful for docker commandline
+ENV JAVA_HOME /usr/lib/jvm/java-8-openjdk-amd64/
+RUN export JAVA_HOME
+
 # 1. conda
 
 ARG conda_version="4.9.2"
@@ -109,6 +124,9 @@ ARG PYTHON_VERSION=default
 RUN mkdir -p "/home/$NB_USER/work" && \
     fix-permissions "/home/$NB_USER"
 
+# Creates skeleton of funana-users with default files
+ADD etc /etc
+
 USER $NB_UID
 
 # Install conda as jovyan and check the sha256 sum provided on the download site
@@ -135,32 +153,37 @@ RUN wget --quiet "https://github.com/conda-forge/miniforge/releases/download/${m
     rm -rf /home/$NB_USER/.cache/yarn && \
     fix-permissions $CONDA_DIR && \
    fix-permissions /home/$NB_USER
-RUN echo "export MYVAR=$LD_LIBRARY_PATH" && \
-    echo "export LD_LIBRARY_PATH=$LD_LIBRARY_PATH" && \
-    echo "export CONDA_EXE=$CONDA_EXE"  && \
-    echo "export MINIFORGE_VERSION=$MINIFORGE_VERSION"  && \
-    echo "export LANG=$LANG" && \
-    echo "export CONDA_PREFIX=$CONDA_PREFIX"  && \
-    echo "export CONDA_DIR=$CONDA_DIR"  && \
-    echo "export CONDA_VERSION=$CONDA_VERSION" && \
-    echo "export NVIDIA_VISIBLE_DEVICES=$NVIDIA_VISIBLE_DEVICES" && \
-    echo "export NCCL_VERSION=$NCCL_VERSION" && \
-    echo "export CONDA_PYTHON_EXE=$CONDA_PYTHON_EXE" && \
-    echo "export LIBRARY_PATH=$LIBRARY_PATH" && \
-    echo "export CONDA_PROMPT_MODIFIER=$CONDA_PROMP_MODIFIER"  && \
-    echo "export CUDA_PKG_VERSION=$CUDA_PKG_VERSION" && \
-    echo "export CUDA_VERSION=$CUDA_VERSION" && \
-    echo "export NVIDIA_DRIVER_CAPABILITIES=$NVIDIA_DRIVER_CAPABILITIES" && \
-    echo "export LANGUAGE=$LANGUAGE" && \
-    echo "export NVIDIA_REQUIRE_CUDA=$NVIDIA_REQUIRE_CUDA" && \
-    echo "export CONDA_DEFAULT_ENV=$CONDA_DEFAULT_ENV" 
+
+# Ilastik installation
+# As described in ilastik official repo in 2019 select ilastik from ilastik_binary=<ilastik-archive> as found on files.ilastik.org, e.g. ilastik-1.3.2b3-Linux.tar.bz2
+ARG ILASTIK_BINARY=ilastik-1.3.2b3-Linux.tar.bz2
+
+ADD http://files.ilastik.org/$ILASTIK_BINARY /tmp/
+
+RUN sudo chmod 666 $ILASTIK_BINARY && mkdir /opt/ilastik-release && \
+    tar xjvf $ILASTIK_BINARY -C /opt/ilastik-release --strip-components=1 && \
+    sudo rm $ILASTIK_BINARY && \
+    fix-permissions /opt/ilastik-release
+
+# Fiji installation
+# Similarly, define the release version from: https://downloads.imagej.net/fiji/archive/ e.g. 20201104-1356
+ARG FIJI_BINARY=20201104-1356
+
+ADD https://downloads.imagej.net/fiji/archive/$FIJI_BINARY/fiji-linux64.tar.gz /tmp/
+RUN sudo chmod 666 fiji-linux64.tar.gz && mkdir /opt/fiji && \
+    tar zxvf fiji-linux64.tar.gz -C /opt/fiji && \
+    sudo rm fiji-linux64.tar.gz && \
+    fix-permissions /opt/fiji
+
+# Setting .bashrc for all users
 
 RUN echo "Default configurations funana user" >> /etc/skel/.bashrc && \
     echo "export LD_LIBRARY_PATH=\"$LD_LIBRARY_PATH:\$LD_LIBRARY_PATH\"" >> /etc/skel/.bashrc && \
     echo "export NVIDIA_VISIBLE_DEVICES=\"$NVIDIA_VISIBLE_DEVICES" >> /etc/skel/.bashrc  && \
     echo "export NCCL_VERSION=\"$NCCL_VERSION" >> /etc/skel/.bashrc && \
     echo "export LIBRARY_PATH=\"$LIBRARY_PATH:\$LIBRARY_PATH\"" >> /etc/skel/.bashrc && \
-    echo "export CUDA_VERSION=\"$CUDA_VERSION\"" >> /etc/skel/.bashrc 
+    echo "export CUDA_VERSION=\"$CUDA_VERSION\"" >> /etc/skel/.bashrc && \
+    echo "export JAVA_HOME=\"$JAVA_HOME\"" >> /etc/skel/.bashrc 
 
 ADD bin /usr/bin
 # USER root

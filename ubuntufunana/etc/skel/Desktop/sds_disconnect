@@ -1,0 +1,4 @@
+#!/bin/bash
+sudo umount -t cifs /media/lsdf02_TK/
+sudo umount -t cifs /media/lsdf02_RK/
+

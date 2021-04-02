@@ -1,0 +1,3 @@
+#!/bin/bash
+sudo mount -t cifs //lsdf02.urz.uni-heidelberg.de/sd16j005 /media/lsdf02_TK/ -o username=hd_tn121,domain=BWSERVICESAD,dir_mode=0770,file_mode=0770,gid=1000
+sudo mount -t cifs //lsdf02.urz.uni-heidelberg.de/sd18k006 /media/lsdf02_RK/ -o username=hd_tn121,domain=BWSERVICESAD,dir_mode=0770,file_mode=0770,gid=1000

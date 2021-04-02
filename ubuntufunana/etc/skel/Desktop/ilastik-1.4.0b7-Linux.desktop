@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Terminal=false
+Icon[en_US]=/opt/ilastik-release/ilastik-icon.png
+Name[en_US]=ilastik-1.3.2b3-Linux
+Exec=/opt/ilastik-release/run_ilastik.sh
+Name=Ilastik
+Icon=/opt/ilastik-release/ilastik-icon.png
+

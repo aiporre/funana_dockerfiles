@@ -1,0 +1,12 @@
+[Desktop Entry]
+Version=1.0
+Name=ImageJ
+Comment=Scientific Image Analysis
+Type=Application
+Exec=/opt/fiji/Fiji.app/ImageJ-linux64
+TryExec=/opt/fiji/Fiji.app/ImageJ-linux64
+Terminal=false
+StartupNotify=true
+MimeType=image/*;
+Icon=/opt/fiji/Fiji.app/images/icon.png
+Path=/opt/fiji
