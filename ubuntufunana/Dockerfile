@@ -64,6 +64,7 @@ RUN apt-get -q update \
     fonts-liberation \
     run-one \
     git \
+    cifs-utils \
  && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 RUN echo "en_US.UTF-8 UTF-8" > /etc/locale.gen && \
@@ -111,7 +112,7 @@ RUN sed -i.bak -e '/^%sudo/a '"$NB_USER"' ALL=(ALL) NOPASSWD: ALL' /etc/sudoers 
     echo "$NB_USER:$HASH" | /usr/sbin/chpasswd -e && usermod -aG $NB_GID $NB_USER && \
     mkdir -p $CONDA_DIR && mkdir -p $CONDA_DIR/pkgs && \
     chown $NB_USER:$NB_GID $CONDA_DIR && \
-    chmod g+w /etc/passwd && \
+    chmod g+w /etc/passwd /opt && \
     fix-permissions $HOME && \
     fix-permissions $CONDA_DIR &&\
     openssl rand -out $HOME/.rnd -writerand $HOME/.rnd && chmod 600 $HOME/.rnd
@@ -161,7 +162,10 @@ ARG ILASTIK_BINARY=ilastik-1.3.2b3-Linux.tar.bz2
 
 ADD http://files.ilastik.org/$ILASTIK_BINARY /tmp/
 
-RUN sudo chmod 666 $ILASTIK_BINARY && mkdir /opt/ilastik-release && \
+RUN echo '-------------------' && id 
+
+RUN sudo chmod 666 $ILASTIK_BINARY && sudo mkdir /opt/ilastik-release && \
+    sudo chown -R $NB_UID:$NB_GID /opt/ilastik-release && \
     tar xjvf $ILASTIK_BINARY -C /opt/ilastik-release --strip-components=1 && \
     sudo rm $ILASTIK_BINARY && \
     fix-permissions /opt/ilastik-release
@@ -171,7 +175,10 @@ RUN sudo chmod 666 $ILASTIK_BINARY && mkdir /opt/ilastik-release && \
 ARG FIJI_BINARY=20201104-1356
 
 ADD https://downloads.imagej.net/fiji/archive/$FIJI_BINARY/fiji-linux64.tar.gz /tmp/
-RUN sudo chmod 666 fiji-linux64.tar.gz && mkdir /opt/fiji && \
+
+
+RUN sudo chmod 666 fiji-linux64.tar.gz && sudo mkdir /opt/fiji && \
+    sudo chown -R $NB_UID:$NB_GID /opt/fiji && \
     tar zxvf fiji-linux64.tar.gz -C /opt/fiji && \
     sudo rm fiji-linux64.tar.gz && \
     fix-permissions /opt/fiji
@@ -180,26 +187,52 @@ RUN sudo chmod 666 fiji-linux64.tar.gz && mkdir /opt/fiji && \
 ENV N2V_PATH=/opt/quick-n2v
 ADD https://github.com/aiporre/quick-n2v/archive/refs/tags/v0.2.tar.gz /tmp/quickn2v.tar.gz
 
-RUN sudo chmod 666 quickn2v.tar.gz && mkdir $N2V_PATH && \
+RUN sudo chmod 666 quickn2v.tar.gz && sudo mkdir $N2V_PATH && \
+    sudo chown -R $NB_UID:$NB_GID $N2V_PATH && \
     tar zxvf quickn2v.tar.gz --directory $N2V_PATH  --strip 1 && \
     sudo rm quickn2v.tar.gz && \
     conda create -n n2v pip python==3.7
-RUN echo "-----------------" && ls $N2V_PATH
+
+RUN echo "-----------------" && ls -lart $N2V_PATH
+
 SHELL ["conda", "run", "--no-capture-output", "-n", "n2v", "/bin/bash", "-o", "pipefail", "-c"]
 
 RUN conda install -y -c conda-forge tensorflow=1.14 && \ 
     pip install -r $N2V_PATH/requirements.txt && \
-    fix-permissions /opt/quick-n2v && \
-    echo "# Noise2void alliases " >> /etc/skel/.bashrc && \
+    fix-permissions /opt/quick-n2v 
+
+USER root
+
+RUN echo "# Noise2void alliases " >> /etc/skel/.bashrc && \
     echo "export N2V_PATH=\"$N2V_PATH\"" >> /etc/skel/.bashrc && \
     echo "alias n2vimages=\"python \$N2V_PATH/onimages.py\"" >> /etc/skel/.bashrc && \  
     echo "alias n2vvideo=\"python \$N2V_PATH/onvideo.py\"" >> /etc/skel/.bashrc && \  
     echo "alias n2vrun=\"python \$N2V_PATH/onimagestunning.py\"" >> /etc/skel/.bashrc
 
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+
+# Noise2Void installation
+
+USER $NB_UID
+
+ENV STARDIST_PATH=/opt/stardistcluster
+RUN git clone --depth=1 --branch=master https://github.com/aiporre/stardistcluster.git $STARDIST_PATH && \
+    rm -rf $STARDIST_PATH/.git && fix-permissions $STARDIST_PATH && \
+    conda env create -f $STARDIST_PATH/installation/environment_gpu.yaml
+
+RUN echo "-----------------" && ls $STARDIST_PATH
+SHELL ["conda", "run", "--no-capture-output", "-n", "stardist-gpu", "/bin/bash", "-o", "pipefail", "-c"]
+
+RUN pip install $STARDIST_PATH/installation/ 
+
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 
 # Setting .bashrc for all users
+
+USER root
 
 RUN echo "# Default configurations funana user" >> /etc/skel/.bashrc && \
     echo "export LD_LIBRARY_PATH=\"$LD_LIBRARY_PATH:\$LD_LIBRARY_PATH\"" >> /etc/skel/.bashrc && \
