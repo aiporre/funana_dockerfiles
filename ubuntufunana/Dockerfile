@@ -218,15 +218,81 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 USER $NB_UID
 
 ENV STARDIST_PATH=/opt/stardistcluster
-RUN git clone --depth=1 --branch=master https://github.com/aiporre/stardistcluster.git $STARDIST_PATH && \
+RUN sudo mkdir -p $STARDIST_PATH && sudo chown -R $NB_UID:$NB_GID $STARDIST_PATH && \
+    git clone --depth=1 --branch=master https://github.com/aiporre/stardistcluster.git $STARDIST_PATH && \
     rm -rf $STARDIST_PATH/.git && fix-permissions $STARDIST_PATH && \
     conda env create -f $STARDIST_PATH/installation/environment_gpu.yaml
 
 RUN echo "-----------------" && ls $STARDIST_PATH
+# to activate conda stardist 
 SHELL ["conda", "run", "--no-capture-output", "-n", "stardist-gpu", "/bin/bash", "-o", "pipefail", "-c"]
 
 RUN pip install $STARDIST_PATH/installation/ 
 
+
+# Cell pose installlation
+ARG CELLPOSE_VERSION=v0.5
+ARG MXNET_VERSION=mxnet-cu101
+ARG CELLPOSE_PATH=/opt/cellpose
+
+ENV CELLPOSE_PATH=$CELLPOSE_PATH
+
+RUN sudo mkdir -p $CELLPOSE_PATH && sudo chown -R $NB_UID:$NB_GID $CELLPOSE_PATH && \
+    git clone https://github.com/MouseLand/cellpose.git $CELLPOSE_PATH 
+
+WORKDIR $CELLPOSE_PATH
+
+RUN git reset --hard $CELLPOSE_VERSION && \
+    rm -rf $CELLPOSE_PATH/.git && fix-permissions $CELLPOSE_PATH && \
+    conda env create -f $CELLPOSE_PATH/environment.yml
+
+RUN echo "-----------------" && ls $CELLPOSE_PATH
+# to activate conda stardist 
+SHELL ["conda", "run", "--no-capture-output", "-n", "cellpose", "/bin/bash", "-o", "pipefail", "-c"]
+
+RUN pip install cellpose --upgrade && conda install -y jupyter && \
+    pip install matplotlib scikit-image && pip uninstall --yes mxnet-mkl && \
+    pip uninstall --yes mxnet && \
+    pip install --no-deps cellpose --upgrade && \
+    pip install $MXNET_VERSION
+
+# Elektronn installlation
+ENV ELEKTRONN_PATH=/opt/elektronn3
+
+RUN sudo mkdir -p $ELEKTRONN_PATH && sudo chown -R $NB_UID:$NB_GID $ELEKTRONN_PATH && \
+    git clone https://github.com/ELEKTRONN/elektronn3 $ELEKTRONN_PATH && \
+    rm -rf $ELEKTRONN_PATH/.git && fix-permissions $ELEKTRONN_PATH && \
+    conda env create -f $ELEKTRONN_PATH/environment.yml
+
+RUN echo "-----------------" && ls $ELEKTRONN_PATH
+# to activate conda stardist 
+SHELL ["conda", "run", "--no-capture-output", "-n", "elektronn3", "/bin/bash", "-o", "pipefail", "-c"]
+
+RUN pip install -e $ELEKTRONN_PATH
+
+# Deepstorm installation
+
+ARG DEEPSTORM_VERSION=1.12.2
+ARG DEEPSTORM_PATH=/opt/deepstorm
+
+ENV DEEPSTORM_PATH=$DEEPSTORM_PATH
+
+RUN sudo mkdir -p $DEEPSTORM_PATH && sudo chown -R $NB_UID:$NB_GID $DEEPSTORM_PATH && \
+    git clone https://github.com/HenriquesLab/ZeroCostDL4Mic.git $DEEPSTORM_PATH 
+
+WORKDIR $DEEPSTORM_PATH
+
+#RUN git reset --hard $DEEPSTORM_VERSION && \
+RUN rm -rf $DEEPSTORM_PATH/.git && fix-permissions $DEEPSTORM_PATH && \
+    conda create --y -n deepstorm python=3.7
+
+RUN echo "-----------------" && ls $DEEPSTORM_PATH
+# to activate conda stardist 
+SHELL ["conda", "run", "--no-capture-output", "-n", "deepstorm", "/bin/bash", "-o", "pipefail", "-c"]
+
+RUN pip install -r $DEEPSTORM_PATH/requirements_files/DeepSTORM_requirements_simple.txt
+
+# Turn off conda environment activation
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 
@@ -235,12 +301,13 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 USER root
 
 RUN echo "# Default configurations funana user" >> /etc/skel/.bashrc && \
+    echo "export PATH=\"$PATH:\$PATH\"" >> /etc/skel/.bashrc && \
     echo "export LD_LIBRARY_PATH=\"$LD_LIBRARY_PATH:\$LD_LIBRARY_PATH\"" >> /etc/skel/.bashrc && \
     echo "export NVIDIA_VISIBLE_DEVICES=\"$NVIDIA_VISIBLE_DEVICES" >> /etc/skel/.bashrc  && \
     echo "export NCCL_VERSION=\"$NCCL_VERSION" >> /etc/skel/.bashrc && \
     echo "export LIBRARY_PATH=\"$LIBRARY_PATH:\$LIBRARY_PATH\"" >> /etc/skel/.bashrc && \
     echo "export CUDA_VERSION=\"$CUDA_VERSION\"" >> /etc/skel/.bashrc && \
-    echo "export JAVA_HOME=\"$JAVA_HOME\"" >> /etc/skel/.bashrc 
+    echo "export JAVA_HOME=\"$JAVA_HOME\"" >> /etc/skel/.bashrc
 
 ADD bin /usr/bin
 # USER root
