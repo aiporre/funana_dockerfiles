@@ -1,0 +1,13 @@
+[Desktop Entry]
+Version=1.0
+Name=SDS_Disconnect
+Comment=Disconnection to the SDS
+Type=Application
+Exec=/usr/bin/sds_disconnect
+Terminal=true
+StartupNotify=true
+MimeType=image/*;
+Icon=/opt/sds/images/door.jpg
+Path=
+
+Name[en_US]=sds_disconnect.desktop

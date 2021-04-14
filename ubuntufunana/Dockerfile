@@ -310,7 +310,7 @@ RUN echo "# Default configurations funana user" >> /etc/skel/.bashrc && \
     echo "export JAVA_HOME=\"$JAVA_HOME\"" >> /etc/skel/.bashrc
 
 ADD bin /usr/bin
-# USER root
+COPY images /opt/sds/images
 
 WORKDIR /etc/xrdp  
 USER $NB_UID

@@ -1,0 +1,12 @@
+[Desktop Entry]
+Version=1.0
+Name=SDS_Connect
+Comment=Connection to the SDS
+Type=Application
+Exec=/usr/bin/sds_connect
+Terminal=true
+StartupNotify=true
+MimeType=image/*;
+Icon=/opt/sds/images/cloud.jpg
+Path=
+
