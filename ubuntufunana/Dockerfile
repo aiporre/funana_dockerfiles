@@ -5,7 +5,9 @@
 ARG ROOT_CONTAINER=ubuntu:18.04
 
 ARG BASE_CONTAINER=$ROOT_CONTAINER
-FROM ubunturdp
+
+ARG UBUNTURDPTAG=cuda10.1-cudnn7-ubuntu18.04
+FROM ubunturdp:$UBUNTURDPTAG
 
 SHELL ["/bin/bash", "--login", "-o", "pipefail", "-c"]
 
@@ -65,6 +67,7 @@ RUN apt-get -q update \
     run-one \
     git \
     cifs-utils \
+    screen \
  && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 RUN echo "en_US.UTF-8 UTF-8" > /etc/locale.gen && \
@@ -128,6 +131,8 @@ RUN mkdir -p "/home/$NB_USER/work" && \
 
 # Creates skeleton of funana-users with default files
 ADD etc /etc
+ADD bin /usr/bin
+
 
 USER $NB_UID
 
@@ -156,34 +161,34 @@ RUN wget --quiet "https://github.com/conda-forge/miniforge/releases/download/${m
     fix-permissions $CONDA_DIR && \
    fix-permissions /home/$NB_USER
 
-# Ilastik installation
-# As described in ilastik official repo in 2019 select ilastik from ilastik_binary=<ilastik-archive> as found on files.ilastik.org, e.g. ilastik-1.3.2b3-Linux.tar.bz2
-ARG ILASTIK_BINARY=ilastik-1.3.2b3-Linux.tar.bz2
+# # Ilastik installation
+# # As described in ilastik official repo in 2019 select ilastik from ilastik_binary=<ilastik-archive> as found on files.ilastik.org, e.g. ilastik-1.3.2b3-Linux.tar.bz2
+# ARG ILASTIK_BINARY=ilastik-1.3.2b3-Linux.tar.bz2
 
-ADD http://files.ilastik.org/$ILASTIK_BINARY /tmp/
+# ADD http://files.ilastik.org/$ILASTIK_BINARY /tmp/
 
-RUN echo '-------------------' && id 
+# RUN echo '-------------------' && id 
 
-RUN sudo chmod 666 $ILASTIK_BINARY && sudo mkdir /opt/ilastik-release && \
-    sudo chown -R $NB_UID:$NB_GID /opt/ilastik-release && \
-    tar xjvf $ILASTIK_BINARY -C /opt/ilastik-release --strip-components=1 && \
-    sudo rm $ILASTIK_BINARY && \
-    fix-permissions /opt/ilastik-release
+# RUN sudo chmod 666 $ILASTIK_BINARY && sudo mkdir /opt/ilastik-release && \
+#     sudo chown -R $NB_UID:$NB_GID /opt/ilastik-release && \
+#     tar xjvf $ILASTIK_BINARY -C /opt/ilastik-release --strip-components=1 && \
+#     sudo rm $ILASTIK_BINARY && \
+#     fix-permissions /opt/ilastik-release
 
-# Fiji installation
-# Similarly, define the release version from: https://downloads.imagej.net/fiji/archive/ e.g. 20201104-1356
-ARG FIJI_BINARY=20201104-1356
+# # Fiji installation
+# # Similarly, define the release version from: https://downloads.imagej.net/fiji/archive/ e.g. 20201104-1356
+# ARG FIJI_BINARY=20201104-1356
 
-ADD https://downloads.imagej.net/fiji/archive/$FIJI_BINARY/fiji-linux64.tar.gz /tmp/
+# ADD https://downloads.imagej.net/fiji/archive/$FIJI_BINARY/fiji-linux64.tar.gz /tmp/
 
 
-RUN sudo chmod 666 fiji-linux64.tar.gz && sudo mkdir /opt/fiji && \
-    sudo chown -R $NB_UID:$NB_GID /opt/fiji && \
-    tar zxvf fiji-linux64.tar.gz -C /opt/fiji && \
-    sudo rm fiji-linux64.tar.gz && \
-    fix-permissions /opt/fiji
+# RUN sudo chmod 666 fiji-linux64.tar.gz && sudo mkdir /opt/fiji && \
+#     sudo chown -R $NB_UID:$NB_GID /opt/fiji && \
+#     tar zxvf fiji-linux64.tar.gz -C /opt/fiji && \
+#     sudo rm fiji-linux64.tar.gz && \
+#     fix-permissions /opt/fiji
 
-# Noise2Void installation
+# # Noise2Void installation
 ENV N2V_PATH=/opt/quick-n2v
 ADD https://github.com/aiporre/quick-n2v/archive/refs/tags/v0.2.tar.gz /tmp/quickn2v.tar.gz
 
@@ -197,7 +202,7 @@ RUN echo "-----------------" && ls -lart $N2V_PATH
 
 SHELL ["conda", "run", "--no-capture-output", "-n", "n2v", "/bin/bash", "-o", "pipefail", "-c"]
 
-RUN conda install -y -c conda-forge tensorflow=1.14 && \ 
+RUN install_tf_n2v.sh && \ 
     pip install -r $N2V_PATH/requirements.txt && \
     fix-permissions /opt/quick-n2v 
 
@@ -210,10 +215,10 @@ RUN echo "# Noise2void alliases " >> /etc/skel/.bashrc && \
     echo "alias n2vrun=\"python \$N2V_PATH/onimagestunning.py\"" >> /etc/skel/.bashrc
 
 
-SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+# SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 
-# Noise2Void installation
+# stardist installation
 
 USER $NB_UID
 
@@ -227,70 +232,73 @@ RUN echo "-----------------" && ls $STARDIST_PATH
 # to activate conda stardist 
 SHELL ["conda", "run", "--no-capture-output", "-n", "stardist-gpu", "/bin/bash", "-o", "pipefail", "-c"]
 
-RUN pip install $STARDIST_PATH/installation/ 
+RUN install_tf_stardist.sh && pip install $STARDIST_PATH/installation/ 
 
 
-# Cell pose installlation
-ARG CELLPOSE_VERSION=v0.5
-ARG MXNET_VERSION=mxnet-cu101
-ARG CELLPOSE_PATH=/opt/cellpose
+# # Cell pose installlation
+# ARG CELLPOSE_VERSION=v0.6.1
+# ARG MXNET_VERSION=mxnet-cu112
+# ARG CELLPOSE_CUDATOOLKIT=11.1
+# ARG CELLPOSE_PATH=/opt/cellpose
 
-ENV CELLPOSE_PATH=$CELLPOSE_PATH
+# ENV CELLPOSE_PATH=$CELLPOSE_PATH
 
-RUN sudo mkdir -p $CELLPOSE_PATH && sudo chown -R $NB_UID:$NB_GID $CELLPOSE_PATH && \
-    git clone https://github.com/MouseLand/cellpose.git $CELLPOSE_PATH 
+# RUN sudo mkdir -p $CELLPOSE_PATH && sudo chown -R $NB_UID:$NB_GID $CELLPOSE_PATH && \
+#     git clone https://github.com/MouseLand/cellpose.git $CELLPOSE_PATH 
 
-WORKDIR $CELLPOSE_PATH
+# WORKDIR $CELLPOSE_PATH
 
-RUN git reset --hard $CELLPOSE_VERSION && \
-    rm -rf $CELLPOSE_PATH/.git && fix-permissions $CELLPOSE_PATH && \
-    conda env create -f $CELLPOSE_PATH/environment.yml
+# RUN git reset --hard $CELLPOSE_VERSION && \
+#     rm -rf $CELLPOSE_PATH/.git && fix-permissions $CELLPOSE_PATH && \
+#     conda env create -f $CELLPOSE_PATH/environment.yml
 
-RUN echo "-----------------" && ls $CELLPOSE_PATH
+# RUN echo "-----------------" && ls $CELLPOSE_PATH
+# # to activate conda stardist 
+# SHELL ["conda", "run", "--no-capture-output", "-n", "cellpose", "/bin/bash", "-o", "pipefail", "-c"]
+
+# RUN pip install cellpose --upgrade && conda install -y jupyter && \
+#     pip install matplotlib scikit-image && pip install cellpose[gui] && \
+#     pip uninstall --yes torch && \
+#     conda install -y pytorch cudatoolkit=$CELLPOSE_CUDATOOLKIT -c pytorch -c nvidia && \
+#     pip install --no-deps cellpose --upgrade && \
+#     pip install $MXNET_VERSION
+
+# # Elektronn installlation
+# ENV ELEKTRONN_PATH=/opt/elektronn3
+
+# RUN sudo mkdir -p $ELEKTRONN_PATH && sudo chown -R $NB_UID:$NB_GID $ELEKTRONN_PATH && \
+#     git clone https://github.com/ELEKTRONN/elektronn3 $ELEKTRONN_PATH && \
+#     rm -rf $ELEKTRONN_PATH/.git && fix-permissions $ELEKTRONN_PATH && \
+#     conda env create -f $ELEKTRONN_PATH/environment.yml
+
+# RUN echo "-----------------" && ls $ELEKTRONN_PATH
+# # to activate conda stardist 
+# SHELL ["conda", "run", "--no-capture-output", "-n", "elektronn3", "/bin/bash", "-o", "pipefail", "-c"]
+
+# RUN pip install -e $ELEKTRONN_PATH
+
+# # Deepstorm installation
+
+# ARG DEEPSTORM_VERSION=1.12.2
+# ARG DEEPSTORM_PATH=/opt/deepstorm
+
+# ENV DEEPSTORM_PATH=$DEEPSTORM_PATH
+
+# RUN sudo mkdir -p $DEEPSTORM_PATH && sudo chown -R $NB_UID:$NB_GID $DEEPSTORM_PATH && \
+#     git clone https://github.com/HenriquesLab/ZeroCostDL4Mic.git $DEEPSTORM_PATH 
+
+# WORKDIR $DEEPSTORM_PATH
+
+# #RUN git reset --hard $DEEPSTORM_VERSION && \
+# RUN rm -rf $DEEPSTORM_PATH/.git && fix-permissions $DEEPSTORM_PATH && \
+#     conda create --y -n deepstorm python=3.7
+
+# RUN echo "-----------------" && ls $DEEPSTORM_PATH
 # to activate conda stardist 
-SHELL ["conda", "run", "--no-capture-output", "-n", "cellpose", "/bin/bash", "-o", "pipefail", "-c"]
+# SHELL ["conda", "run", "--no-capture-output", "-n", "deepstorm", "/bin/bash", "-o", "pipefail", "-c"]
 
-RUN pip install cellpose --upgrade && conda install -y jupyter && \
-    pip install matplotlib scikit-image && pip uninstall --yes mxnet-mkl && \
-    pip uninstall --yes mxnet && \
-    pip install --no-deps cellpose --upgrade && \
-    pip install $MXNET_VERSION
-
-# Elektronn installlation
-ENV ELEKTRONN_PATH=/opt/elektronn3
-
-RUN sudo mkdir -p $ELEKTRONN_PATH && sudo chown -R $NB_UID:$NB_GID $ELEKTRONN_PATH && \
-    git clone https://github.com/ELEKTRONN/elektronn3 $ELEKTRONN_PATH && \
-    rm -rf $ELEKTRONN_PATH/.git && fix-permissions $ELEKTRONN_PATH && \
-    conda env create -f $ELEKTRONN_PATH/environment.yml
-
-RUN echo "-----------------" && ls $ELEKTRONN_PATH
-# to activate conda stardist 
-SHELL ["conda", "run", "--no-capture-output", "-n", "elektronn3", "/bin/bash", "-o", "pipefail", "-c"]
-
-RUN pip install -e $ELEKTRONN_PATH
-
-# Deepstorm installation
-
-ARG DEEPSTORM_VERSION=1.12.2
-ARG DEEPSTORM_PATH=/opt/deepstorm
-
-ENV DEEPSTORM_PATH=$DEEPSTORM_PATH
-
-RUN sudo mkdir -p $DEEPSTORM_PATH && sudo chown -R $NB_UID:$NB_GID $DEEPSTORM_PATH && \
-    git clone https://github.com/HenriquesLab/ZeroCostDL4Mic.git $DEEPSTORM_PATH 
-
-WORKDIR $DEEPSTORM_PATH
-
-#RUN git reset --hard $DEEPSTORM_VERSION && \
-RUN rm -rf $DEEPSTORM_PATH/.git && fix-permissions $DEEPSTORM_PATH && \
-    conda create --y -n deepstorm python=3.7
-
-RUN echo "-----------------" && ls $DEEPSTORM_PATH
-# to activate conda stardist 
-SHELL ["conda", "run", "--no-capture-output", "-n", "deepstorm", "/bin/bash", "-o", "pipefail", "-c"]
-
-RUN pip install -r $DEEPSTORM_PATH/requirements_files/DeepSTORM_requirements_simple.txt
+# RUN pip install -r $DEEPSTORM_PATH/requirements_files/DeepSTORM_requirements_simple.txt && \
+#     pip install tensorflow==2.5.0
 
 # Turn off conda environment activation
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
@@ -309,7 +317,6 @@ RUN echo "# Default configurations funana user" >> /etc/skel/.bashrc && \
     echo "export CUDA_VERSION=\"$CUDA_VERSION\"" >> /etc/skel/.bashrc && \
     echo "export JAVA_HOME=\"$JAVA_HOME\"" >> /etc/skel/.bashrc
 
-ADD bin /usr/bin
 COPY images /opt/sds/images
 
 WORKDIR /etc/xrdp  

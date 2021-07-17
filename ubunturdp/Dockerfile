@@ -1,4 +1,5 @@
-FROM nvidia/cuda:10.1-cudnn7-devel-ubuntu18.04 as builder
+ARG NVIDIATAG=10.1-cudnn7-devel-ubuntu18.04
+FROM nvidia/cuda:$NVIDIATAG as builder
 MAINTAINER Ariel Iporre
 
 # Install packages
@@ -41,7 +42,7 @@ RUN make
 RUN mkdir -p /tmp/so
 RUN cp *.so /tmp/so
 
-FROM nvidia/cuda:10.1-cudnn7-devel-ubuntu18.04
+FROM nvidia/cuda:$NVIDIATAG
 ARG ADDITIONAL_PACKAGES=""
 ENV ADDITIONAL_PACKAGES=${ADDITIONAL_PACKAGES}
 ENV DEBIAN_FRONTEND noninteractive
@@ -75,6 +76,7 @@ RUN apt -y full-upgrade && apt install -y \
   xorgxrdp \
   xprintidle \
   xrdp \
+  ubuntu-desktop \
   $ADDITIONAL_PACKAGES \
   && \
   rm -rf /var/cache/apt /var/lib/apt/lists && \
