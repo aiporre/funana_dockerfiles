@@ -1,0 +1,8 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=MATLAB R2020b
+Icon=/home/funana/Documents/software/SDS/icons/matlab.png
+Exec=/usr/local/MATLAB/R2020b/bin/glnxa64/MATLAB -desktop -prefersoftwareopengl
+Terminal=false
+Name[en_US]=MATLABR2020b

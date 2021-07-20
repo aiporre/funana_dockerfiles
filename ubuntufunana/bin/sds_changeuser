@@ -1,0 +1,13 @@
+#!/bin/bash
+
+# user input of unid
+
+echo "Enter your uniID "
+read UNIID
+
+# compose the user name with the suffix hd_
+USERNAME="hd_$UNIID"
+
+# change username in the sds_connect script.
+
+sed -i -e "s/username=\(.*\)domain/username=$USERNAME,domain/" /usr/bin/sds_connect

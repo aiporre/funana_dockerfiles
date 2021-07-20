@@ -70,7 +70,7 @@ docker build --build-arg UBUNTUFUNANATAG=cuda11.2 -t user:cuda11.2 .
 ```
 
 ```bash
-    docker run -it --name user --gpus all --hostname terminalserver --cap-add=SYS_ADMIN --cap-add DAC_READ_SEARCH --security-opt apparmor:unconfined --shm-size 64g -p 33895:3389 -p 2225:22 v shared:/mnt/data/Data user:cuda11.2
+    docker run -it --name user --gpus all --hostname terminalserver --cap-add=SYS_ADMIN --cap-add DAC_READ_SEARCH --security-opt apparmor:unconfined --shm-size 64g -p 33895:3389 -p 2225:22 -v shared:/mnt/data/Data user:cuda11.2
 ```
 #### Optional steps
 
@@ -89,30 +89,39 @@ docker build --build-arg UBUNTUFUNANATAG=cuda11.2 -t user:cuda11.2 .
 	4. To connect (with remmina) use True Color 32 bpp Color depth.
 
 
+
+TODOS:
+[x] test n2v cuda11.0 fix ptxas notebook [OK]
+[x] test n2v cuda11.2 notebook [OK]
+[x] test cuda 11.0 stardist notebook 
+[x] test cuda 11.2 stardist notebook 
+[x] test deepstorm notebook cuda 11.0
+[x] test deepstorm notebook cuda 11.2
+[x] test cellpose notebook cuda 11.0
+[x] test cellpose nmotebook cuda 11.2
+[] install fiji plugins
+[] install matlab 
+[] install ubuntu-desktop
+
+
 TODOS:
 [x] Test noise to void it wont work here
-    [] chagne tag of quick-n2v to last version of n2v official repo
-    [] cuda 11.0 tf 2.4 test in a RXT3000?
-    [] if user need to run in n2v the container need s cuda 11.0 
-    [] if user needs also some stuff that doesnt' work on cuda 11.0 then n2v will run in cpu
-    [] however if N2V decides to update to tf 2.5.0 then it will run in cuda11.1 and everythin will work.
+    [x] chagne tag of quick-n2v to last version of n2v official repo
+    [x] cuda 11.0 tf 2.4 test in a RXT3000?
+    [x] Separate container n2v cuda11.0 with tf-cpu
+    [x] Separate container n2v cuda11.2 with tf-gpu 
+    [x] however if N2V decides to update to tf 2.5.0 then it will run in cuda11.1 and everythin will work.
 [x] change cellpose to v0.6.2 (last version). before was using mxnet..mxnet doesn#t work with rx3000 series
 [x] test stardist object and segmentation. change to cuda11.2 or use the workaround (better will be tf2.5 and cuda 11.2)
-    [] need to install nubios_academy.. create volume that connects mnt data Data 
-    [] update stadistcluster to tf2
-[] test elektron
-    [] missing data to test
-    [] runs in cuda 11.2?
+    [x] need to install nubios_academy.. create volume that connects mnt data Data 
+    [x] update stadistcluster to tf2
+[]x test elektron
+    [x] runs in cuda 11.2?
     [x] runs in cuda 11.0?
-    [x] runs in cuda 10.1?
 [x] test deepstrorm
     [x] need to change tf 2.4.0 to 2.5.0
 [x] install windows VMs
 [] document how to change user name and password of the sds
-[] change to gnome or unity
-    [] cannot open text files 
-    [] doent' have openoffice
 [] terminal colors 256 support
-[] fix LD_LIBRARY_PATH nvidia to cuda
-[] cannot mount volume without destroying sds-connect, .bashrc and so on...
-funana password is cajal1906
+[x] fix LD_LIBRARY_PATH nvidia to cuda
+

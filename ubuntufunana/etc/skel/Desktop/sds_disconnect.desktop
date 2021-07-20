@@ -7,7 +7,7 @@ Exec=/usr/bin/sds_disconnect
 Terminal=true
 StartupNotify=true
 MimeType=image/*;
-Icon=/opt/sds/images/door.jpg
+Icon=/opt/sds/images/disconnect.png
 Path=
 
 Name[en_US]=sds_disconnect.desktop
